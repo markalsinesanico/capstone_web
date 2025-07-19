@@ -21,7 +21,7 @@
             <p>APPOINT & BORROW</p>
           </div>
         </div>
-        <div class="user">{{ userEmail }}</div>
+        <div class="user">M {{ userEmail }}</div>
       </header>
 
       <!-- Item Section -->
@@ -37,6 +37,7 @@
               <div>
                 <div class="item-name">{{ item.name }}</div>
                 <div class="item-quantity">Qty: {{ item.qty }}</div>
+                <div class="item-description">{{ item.description }}</div>
               </div>
             </div>
             <div class="item-actions">
@@ -56,7 +57,14 @@
         <table>
           <thead>
             <tr>
-              <th>#</th><th>Name</th><th>ID</th><th>Date</th><th>Time In</th><th>Time Out</th><th>Item</th><th>Action</th>
+              <th>#</th>
+              <th>Name</th>
+              <th>ID</th>
+              <th>Date</th>
+              <th>Time In</th>
+              <th>Time Out</th>
+              <th>Item</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -82,6 +90,7 @@
         <h3>{{ modalTitle }}</h3>
         <form @submit.prevent="handleSubmit">
           <div class="modal-form">
+            <!-- Add/Edit Item -->
             <template v-if="modalType === 'add' || modalType === 'edit'">
               <label>
                 <span>📦 Item Name</span>
@@ -98,6 +107,7 @@
               </label>
             </template>
 
+            <!-- Request Item -->
             <template v-else-if="modalType === 'request'">
               <label>
                 <span>👤 Full Name</span>
@@ -169,6 +179,7 @@ export default {
       this.modalType = type;
       this.currentItem = item;
       this.showModal = true;
+
       if (type === "edit" && item) {
         this.form = { ...item };
       } else if (type === "request") {
@@ -225,6 +236,7 @@ export default {
   },
 };
 </script>
+
 <style scoped>
 
 
@@ -241,12 +253,13 @@ export default {
 
     .container {
       display: flex;
-      flex-direction: row;
-      min-height: 100vh;
+  flex-direction: row;
+  min-height: 100vh;
+  min-width: 100vw;
     }
 
     .sidebar {
-  width: 220px;
+      width: 220px;
   background: #2c3e50;
   color: white;
   display: flex;
@@ -436,28 +449,30 @@ export default {
     .cancel-btn { background-color: #dc3545; }
 
     .modal {
-     
       position: fixed;
       z-index: 999;
       left: 0; top: 0;
       width: 100%; height: 100%;
       background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .modal-content {
       background-color: white;
-      margin: 10% auto;
-      padding: 20px;
-      border-radius: 10px;
+      padding: 30px 24px 24px 24px;
+      border-radius: 14px;
       width: 400px;
       position: relative;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.18);
     }
 
     .close {
       position: absolute;
       right: 20px;
       top: 10px;
-      font-size: 20px;
+      font-size: 22px;
       cursor: pointer;
     }
 
@@ -492,8 +507,8 @@ export default {
     .modal-form label {
   display: flex;
   flex-direction: column;
-  margin-bottom: 12px;
-  font-size: 14px;
+  margin-bottom: 16px;
+  font-size: 15px;
   color: #333;
 }
 
@@ -502,13 +517,21 @@ export default {
   font-weight: bold;
 }
 
-.modal-form input {
+.modal-form input, .modal-form select, .modal-form textarea {
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 15px;
 }
 
+.image-preview {
+  margin-top: 8px;
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
 .submit-btn {
   background-color: #007e3a;
   color: white;
@@ -521,7 +544,6 @@ export default {
   margin-top: 10px;
   transition: background 0.3s ease;
 }
-
 .submit-btn:hover {
   background-color: #00632e;
 }

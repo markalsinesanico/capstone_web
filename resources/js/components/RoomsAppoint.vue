@@ -24,7 +24,7 @@
         <section class="item-section">
           <div class="item-header">
             <h2>Available Rooms</h2>
-            <button @click="addRoom">+ Add Room</button>
+            <button @click="openRoomModal('add')">+ Add Room</button>
           </div>
           <div class="item-list">
             <div class="item" v-for="(room, index) in rooms" :key="index">
@@ -35,7 +35,7 @@
                 </div>
               </div>
               <div class="item-actions">
-                <button class="edit-btn" @click="editRoom(index)">EDIT</button>
+                <button class="edit-btn" @click="openRoomModal('edit', index)">EDIT</button>
                 <button class="request-btn" @click="requestRoom(room)">Request Room</button>
                 <button class="delete-btn" @click="deleteRoom(index)">DELETE</button>
               </div>
@@ -65,17 +65,17 @@
             </thead>
             <tbody>
               <tr>
-                <td>Jomong</td>
-                <td><a href="#">2022-295</a></td>
-                <td>Computer Lab</td>
-                <td>3rd yr</td>
-                <td>CEIT</td>
-                <td>BSICT</td>
-                <td>06/05/2025</td>
-                <td>11:30 AM</td>
-                <td>12:30 PM</td>
-                <td>msanico@ssct.edu.ph</td>
-                <td>
+                <td data-label="Name">Jomong</td>
+                <td data-label="ID number"><a href="#">2022-295</a></td>
+                <td data-label="Type">Computer Lab</td>
+                <td data-label="Year">3rd yr</td>
+                <td data-label="Department">CEIT</td>
+                <td data-label="Course">BSICT</td>
+                <td data-label="Date">06/05/2025</td>
+                <td data-label="IN">11:30 AM</td>
+                <td data-label="OUT">12:30 PM</td>
+                <td data-label="Account">msanico@ssct.edu.ph</td>
+                <td data-label="Status">
                   <button class="status-btn approve-btn">APPROVE</button>
                   <button class="status-btn cancel-btn">CANCEL</button>
                 </td>
@@ -84,6 +84,26 @@
           </table>
         </section>
       </main>
+      <!-- Room Modal -->
+      <div v-if="showRoomModal" class="modal" @click.self="closeRoomModal">
+        <div class="modal-content">
+          <span class="close" @click="closeRoomModal">&times;</span>
+          <h3>{{ roomModalType === 'add' ? 'Add Room' : 'Edit Room' }}</h3>
+          <form @submit.prevent="handleRoomSubmit">
+            <div class="modal-form">
+              <label>
+                <span>🏢 Room Name</span>
+                <input v-model="roomForm.name" placeholder="Enter room name" required />
+              </label>
+              <label>
+                <span>🔢 Quantity</span>
+                <input v-model.number="roomForm.quantity" type="number" min="1" placeholder="Enter quantity" required />
+              </label>
+            </div>
+            <button type="submit" class="submit-btn">✔ Submit</button>
+          </form>
+        </div>
+      </div>
     </div>
   </template>
   
@@ -92,24 +112,37 @@
     data() {
       return {
         rooms: [{ name: 'COMPUTER LAB', quantity: 5 }],
-        search: ''
+        search: '',
+        showRoomModal: false,
+        roomModalType: 'add',
+        roomForm: { name: '', quantity: 1 },
+        editRoomIndex: null
       };
     },
     methods: {
-      addRoom() {
-        const name = prompt('Enter room name:');
-        const quantity = prompt('Enter quantity:');
-        if (name && quantity) {
-          this.rooms.push({ name, quantity: parseInt(quantity) });
+      openRoomModal(type, index = null) {
+        this.roomModalType = type;
+        this.showRoomModal = true;
+        if (type === 'edit' && index !== null) {
+          this.editRoomIndex = index;
+          this.roomForm = { ...this.rooms[index] };
+        } else {
+          this.editRoomIndex = null;
+          this.roomForm = { name: '', quantity: 1 };
         }
       },
-      editRoom(index) {
-        const updatedName = prompt('Update room name:', this.rooms[index].name);
-        const updatedQuantity = prompt('Update quantity:', this.rooms[index].quantity);
-        if (updatedName && updatedQuantity) {
-          this.rooms[index].name = updatedName;
-          this.rooms[index].quantity = parseInt(updatedQuantity);
+      closeRoomModal() {
+        this.showRoomModal = false;
+        this.roomForm = { name: '', quantity: 1 };
+        this.editRoomIndex = null;
+      },
+      handleRoomSubmit() {
+        if (this.roomModalType === 'add') {
+          this.rooms.push({ ...this.roomForm });
+        } else if (this.roomModalType === 'edit' && this.editRoomIndex !== null) {
+          this.rooms.splice(this.editRoomIndex, 1, { ...this.roomForm });
         }
+        this.closeRoomModal();
       },
       requestRoom(room) {
         alert(`Requesting room: ${room.name}`);
@@ -138,8 +171,9 @@
 
     .container {
       display: flex;
-      flex-direction: row;
-      min-height: 100vh;
+  flex-direction: row;
+  min-height: 100vh;
+  min-width: 100vw;
     }
 
     .sidebar {
@@ -333,28 +367,30 @@
     .cancel-btn { background-color: #dc3545; }
 
     .modal {
-     
       position: fixed;
       z-index: 999;
       left: 0; top: 0;
       width: 100%; height: 100%;
       background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .modal-content {
       background-color: white;
-      margin: 10% auto;
-      padding: 20px;
-      border-radius: 10px;
+      padding: 30px 24px 24px 24px;
+      border-radius: 14px;
       width: 400px;
       position: relative;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.18);
     }
 
     .close {
       position: absolute;
       right: 20px;
       top: 10px;
-      font-size: 20px;
+      font-size: 22px;
       cursor: pointer;
     }
 
@@ -389,8 +425,8 @@
     .modal-form label {
   display: flex;
   flex-direction: column;
-  margin-bottom: 12px;
-  font-size: 14px;
+  margin-bottom: 16px;
+  font-size: 15px;
   color: #333;
 }
 
@@ -403,7 +439,7 @@
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .submit-btn {
@@ -421,5 +457,105 @@
 
 .submit-btn:hover {
   background-color: #00632e;
+}
+
+.borrower-section {
+  margin-top: 20px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  overflow-x: auto;
+}
+
+.borrower-section table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.borrower-section th, .borrower-section td {
+  padding: 14px 10px;
+  text-align: center;
+  font-size: 15px;
+}
+
+.borrower-section th {
+  background: #f5f5f5;
+  color: #333;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.borrower-section tbody tr:nth-child(even) {
+  background: #fafbfc;
+}
+
+.borrower-section tbody tr:hover {
+  background: #e8f5e9;
+  transition: background 0.2s;
+}
+
+.status-btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 20px;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 2px 0;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.approve-btn {
+  background-color: #43a047;
+}
+
+.approve-btn:hover {
+  background-color: #388e3c;
+}
+
+.cancel-btn {
+  background-color: #e53935;
+  margin-left: 8px;
+}
+
+.cancel-btn:hover {
+  background-color: #b71c1c;
+}
+
+@media (max-width: 900px) {
+  .borrower-section table, .borrower-section thead, .borrower-section tbody, .borrower-section th, .borrower-section td, .borrower-section tr {
+    display: block;
+  }
+  .borrower-section th {
+    position: static;
+  }
+  .borrower-section td {
+    text-align: right;
+    padding-left: 50%;
+    position: relative;
+  }
+  .borrower-section td:before {
+    content: attr(data-label);
+    position: absolute;
+    left: 10px;
+    top: 14px;
+    font-weight: bold;
+    text-align: left;
+    color: #333;
+  }
+  .status-btn {
+    width: 100%;
+    margin: 4px 0;
+  }
 }
 </style>
