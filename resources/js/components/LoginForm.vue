@@ -5,9 +5,7 @@
         <form @submit.prevent="handleLogin">
           <input v-model="email" type="email" placeholder="Email" required />
           <input v-model="password" type="password" placeholder="Password" required />
-          <router-link to="/dashboard">
-  <button>Login</button>
-</router-link>
+          <button type="submit">Login</button>
           <p v-if="error" class="error">{{ error }}</p>
         </form>
       </div>
@@ -30,13 +28,21 @@
             email: this.email,
             password: this.password
           });
+          
           localStorage.setItem('token', response.data.token);
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+          
+          // Set axios default header for future requests
+          axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+          
           this.$router.push('/dashboard');
         } catch (err) {
           if (err.response && err.response.status === 403) {
             this.error = 'Only admin can log in';
-          } else {
+          } else if (err.response && err.response.status === 401) {
             this.error = 'Invalid email or password';
+          } else {
+            this.error = 'Login failed. Please try again.';
           }
         }
       }

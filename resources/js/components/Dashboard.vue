@@ -18,7 +18,10 @@
             <p>APPOINT & BORROW</p>
           </div>
         </div>
-        <div class="user">M msanico@ssct...</div>
+        <div class="user">
+          {{ userEmail }}
+          <button @click="logout" class="logout-btn">Logout</button>
+        </div>
       </header>
 
       <section class="stats">
@@ -245,7 +248,8 @@ export default {
         }
       ],
       showQrModal: false,
-      qrResult: ''
+      qrResult: '',
+      userEmail: ''
     };
   },
   computed: {
@@ -344,10 +348,26 @@ export default {
     },
     closeQrModal() {
       this.showQrModal = false;
+    },
+    async logout() {
+      try {
+        await axios.post('/api/logout');
+      } catch (e) {
+        // ignore errors
+      }
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      delete axios.defaults.headers.common['Authorization'];
+      this.$router.push('/');
     }
   },
   mounted() {
     this.updateAvailableItems();
+    // Get user email from localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (user && user.email) {
+      this.userEmail = user.email;
+    }
   }
 };
 </script>
@@ -446,12 +466,31 @@ export default {
     }
 
     .topbar .user {
-      background: rgba(255, 255, 255, 0.2);
-      padding: 8px 12px;
-      border-radius: 20px;
-      color: white;
-      font-weight: bold;
-    }
+  background: rgba(255, 255, 255, 0.2);
+  padding: 8px 12px;
+  border-radius: 20px;
+  color: white;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logout-btn {
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s;
+  font-size: 12px;
+}
+
+.logout-btn:hover {
+  background: #c0392b;
+}
 
 .stats {
   display: flex;
