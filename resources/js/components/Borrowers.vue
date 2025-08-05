@@ -3,7 +3,7 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <nav class="menu">
-        <router-link to="/">DASHBOARD</router-link>
+        <router-link to="/dashboard">DASHBOARD</router-link>
         <router-link to="/borrowers">BORROWERS</router-link>
         <router-link to="/appointment">APPOINTMENT</router-link>
         <router-link to="/history">HISTORY</router-link>
