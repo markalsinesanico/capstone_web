@@ -33,7 +33,7 @@
         <div class="item-list">
           <div v-for="item in items" :key="item.id" class="item">
             <div class="item-info">
-              <img :src="item.image" alt="" />
+              <img :src="getImageUrl(item)" alt="" />
               <div>
                 <div class="item-name">{{ item.name }}</div>
                 <div class="item-quantity">Qty: {{ item.qty }}</div>
@@ -64,19 +64,23 @@
               <th>Time In</th>
               <th>Time Out</th>
               <th>Item</th>
-              <th>Action</th>
+              <th>Status</th>
+              <!-- <th>Action</th> -->
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(borrower, index) in filteredBorrowers" :key="index">
+            <tr v-for="(borrower, index) in filteredBorrowers" :key="borrower.id">
               <td>{{ index + 1 }}</td>
               <td>{{ borrower.name }}</td>
-              <td>{{ borrower.id }}</td>
+              <td>{{ borrower.borrower_id }}</td>
               <td>{{ borrower.date }}</td>
-              <td>{{ borrower.timeIn }}</td>
-              <td>{{ borrower.timeOut }}</td>
-              <td>{{ borrower.item }}</td>
-              <td><button class="delete-btn" @click="deleteBorrower(index)">Delete</button></td>
+              <td>{{ borrower.time_in }}</td>
+              <td>{{ borrower.time_out }}</td>
+              <td>{{ borrower.item?.name || 'N/A' }}</td>
+              <td>{{ borrower.status }}</td>
+              <!-- <td>
+                <button class="delete-btn" @click="deleteBorrower(index)">Delete</button>
+              </td> -->
             </tr>
           </tbody>
         </table>
@@ -103,7 +107,11 @@
               <label>
                 <span>🖼️ Upload Image</span>
                 <input type="file" accept="image/*" @change="handleImageUpload" />
-                <img v-if="form.image" :src="form.image" alt="Preview" class="image-preview" />
+                <img v-if="form.imagePreview" :src="form.imagePreview" alt="Preview" class="image-preview" />
+              </label>
+              <label>
+                <span>📝 Description</span>
+                <textarea v-model="form.description" placeholder="Enter description"></textarea>
               </label>
             </template>
 
@@ -143,21 +151,21 @@
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
   name: "Dashboard",
   data() {
     return {
       userEmail: "msanico@ssct.edu.ph",
-      items: [
-        { id: 1, name: "Projector", qty: 12, image: "/img/projector.png" },
-        { id: 2, name: "Extension Wire", qty: 8, image: "/img/remote.png" },
-      ],
+      items: [],
       borrowers: [],
       search: "",
       showModal: false,
       modalType: "",
       currentItem: null,
       form: {},
+      loading: false,
     };
   },
   computed: {
@@ -170,18 +178,40 @@ export default {
     },
     filteredBorrowers() {
       return this.borrowers.filter(b =>
-        b.name.toLowerCase().includes(this.search.toLowerCase())
+        b.name?.toLowerCase().includes(this.search.toLowerCase())
       );
     },
   },
+  mounted() {
+    this.fetchItems();
+    this.fetchBorrowers(); // Fetch requests from backend
+  },
   methods: {
+    async fetchItems() {
+      this.loading = true;
+      try {
+        const res = await axios.get("/api/items");
+        this.items = res.data;
+      } catch (e) {
+        alert("Failed to fetch items.");
+      }
+      this.loading = false;
+    },
+    async fetchBorrowers() {
+      try {
+        const res = await axios.get("/api/requests");
+        this.borrowers = res.data;
+      } catch (e) {
+        alert("Failed to fetch requests.");
+      }
+    },
     openModal(type, item = null) {
       this.modalType = type;
       this.currentItem = item;
       this.showModal = true;
 
       if (type === "edit" && item) {
-        this.form = { ...item };
+        this.form = { ...item, image: null }; // image will be handled separately
       } else if (type === "request") {
         this.form = {
           name: "",
@@ -192,7 +222,7 @@ export default {
           item: item?.name || "",
         };
       } else {
-        this.form = { name: "", qty: "", image: "" };
+        this.form = { name: "", qty: "", image: null, description: "" };
       }
     },
     closeModal() {
@@ -200,38 +230,120 @@ export default {
       this.form = {};
       this.currentItem = null;
     },
-    handleSubmit() {
+    async handleSubmit() {
       if (this.modalType === "add") {
-        const newItem = { ...this.form, id: Date.now() };
-        this.items.push(newItem);
+        await this.addItem();
       } else if (this.modalType === "edit") {
-        const index = this.items.findIndex(i => i.id === this.currentItem.id);
-        if (index !== -1) this.items.splice(index, 1, { ...this.form });
+        await this.editItem();
       } else if (this.modalType === "request") {
-        this.borrowers.push({ ...this.form });
+        try {
+          // Find the item by name to get its ID
+          const item = this.items.find(i => i.name === this.form.item);
+          if (!item) throw new Error("Item not found.");
+
+          await axios.post("/api/requests", {
+            name: this.form.name,
+            borrower_id: this.form.id, // <-- Make sure this is 'borrower_id'
+            date: this.form.date,
+            time_in: this.form.timeIn,
+            time_out: this.form.timeOut,
+            item_id: item.id, // <-- Send the item ID
+          });
+          this.closeModal();
+          alert("Request submitted!");
+        } catch (e) {
+          // Show backend error message if available
+          if (e.response && e.response.data && e.response.data.message) {
+            alert("Failed to submit request: " + e.response.data.message);
+          } else if (e.response && e.response.data && e.response.data.errors) {
+            alert("Failed to submit request: " + JSON.stringify(e.response.data.errors));
+          } else {
+            alert("Failed to submit request.");
+          }
+          console.error(e);
+        }
       }
-      this.closeModal();
-      this.$nextTick(() => {
-        const fileInput = document.querySelector('input[type="file"]');
-        if (fileInput) fileInput.value = "";
-      });
+    },
+    async addItem() {
+      try {
+        const formData = new FormData();
+        formData.append("name", this.form.name);
+        formData.append("qty", this.form.qty);
+        formData.append("description", this.form.description || "");
+        if (this.form.image instanceof File) {
+          formData.append("image", this.form.image);
+        }
+        await axios.post("/api/items", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        this.fetchItems();
+        this.closeModal();
+      } catch (e) {
+        // Show backend error message if available
+        if (e.response && e.response.data && e.response.data.message) {
+          alert("Failed to add item: " + e.response.data.message);
+        } else if (e.response && e.response.data && e.response.data.errors) {
+          alert("Failed to add item: " + JSON.stringify(e.response.data.errors));
+        } else {
+          alert("Failed to add item.");
+        }
+        console.error(e);
+      }
+    },
+    async editItem() {
+      try {
+        const formData = new FormData();
+        formData.append("name", this.form.name);
+        formData.append("qty", this.form.qty);
+        formData.append("description", this.form.description || "");
+        if (this.form.image instanceof File) {
+          formData.append("image", this.form.image);
+        }
+        await axios.post(`/api/items/${this.currentItem.id}?_method=PUT`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        this.fetchItems();
+        this.closeModal();
+      } catch (e) {
+        alert("Failed to update item.");
+      }
     },
     handleImageUpload(event) {
       const file = event.target.files[0];
       if (file && file.type.startsWith("image/")) {
-        if (this.form.image) {
-          URL.revokeObjectURL(this.form.image);
-        }
-        this.form.image = URL.createObjectURL(file);
+        this.form.image = file;
+        // For preview
+        const reader = new FileReader();
+        reader.onload = e => {
+          this.form.imagePreview = e.target.result;
+        };
+        reader.readAsDataURL(file);
       } else {
         alert("Please upload a valid image file.");
       }
     },
-    deleteItem(id) {
-      this.items = this.items.filter(item => item.id !== id);
+    async deleteItem(id) {
+      if (!confirm("Are you sure you want to delete this item?")) return;
+      try {
+        await axios.delete(`/api/items/${id}`);
+        this.fetchItems();
+      } catch (e) {
+        alert("Failed to delete item.");
+      }
     },
-    deleteBorrower(index) {
-      this.borrowers.splice(index, 1);
+    async deleteBorrower(index) {
+      const borrower = this.filteredBorrowers[index];
+      if (!borrower || !borrower.id) return;
+      if (!confirm("Are you sure you want to delete this request?")) return;
+      try {
+        await axios.delete(`/api/requests/${borrower.id}`);
+        this.fetchBorrowers();
+      } catch (e) {
+        alert("Failed to delete request.");
+      }
+    },
+    getImageUrl(item) {
+      return item.image_url || "/img/no-image.png";
     },
   },
 };
