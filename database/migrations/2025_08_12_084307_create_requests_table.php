@@ -12,11 +12,14 @@ return new class extends Migration
             $table->id();
             $table->string('name'); // borrower's name
             $table->string('borrower_id'); // borrower's id number
+            $table->string('year');
+            $table->string('department');
+            $table->string('course');
             $table->date('date');
             $table->time('time_in');
             $table->time('time_out');
             $table->unsignedBigInteger('item_id');
-            $table->string('status')->default('pending'); // pending, approved, rejected, etc.
+            $table->string('status')->default('pending'); // add this line
             $table->timestamps();
 
             $table->foreign('item_id')->references('id')->on('items')->onDelete('cascade');

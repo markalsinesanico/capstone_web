@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\API\ItemController;
 use App\Http\Controllers\API\RequestItemController;
+use App\Http\Controllers\API\RoomController;
+use App\Http\Controllers\API\RoomRequestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,8 +31,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user-info', [AuthController::class, 'user']);
 
-    
+    // Items & Requests
+    Route::apiResource('items', ItemController::class);
+    Route::apiResource('requests', RequestItemController::class);
 
-Route::apiResource('items', ItemController::class);
-Route::apiResource('requests', RequestItemController::class);
-}); 
+    // Rooms
+    Route::apiResource('rooms', RoomController::class);
+
+    // Room Requests
+    Route::get('room-requests',  [RoomRequestController::class, 'index']);
+    Route::post('room-requests', [RoomRequestController::class, 'store']);
+    Route::patch('room-requests/{roomRequest}', [RoomRequestController::class, 'update']);
+    Route::delete('room-requests/{roomRequest}', [RoomRequestController::class, 'destroy']);
+});

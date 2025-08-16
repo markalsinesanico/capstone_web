@@ -60,12 +60,13 @@
               <th>#</th>
               <th>Name</th>
               <th>ID</th>
+              <th>Year</th>
+              <th>Department</th>
+              <th>Course</th>
               <th>Date</th>
               <th>Time In</th>
               <th>Time Out</th>
               <th>Item</th>
-              <th>Status</th>
-              <!-- <th>Action</th> -->
             </tr>
           </thead>
           <tbody>
@@ -73,14 +74,13 @@
               <td>{{ index + 1 }}</td>
               <td>{{ borrower.name }}</td>
               <td>{{ borrower.borrower_id }}</td>
+              <td>{{ borrower.year }}</td>
+              <td>{{ borrower.department }}</td>
+              <td>{{ borrower.course }}</td>
               <td>{{ borrower.date }}</td>
               <td>{{ borrower.time_in }}</td>
               <td>{{ borrower.time_out }}</td>
               <td>{{ borrower.item?.name || 'N/A' }}</td>
-              <td>{{ borrower.status }}</td>
-              <!-- <td>
-                <button class="delete-btn" @click="deleteBorrower(index)">Delete</button>
-              </td> -->
             </tr>
           </tbody>
         </table>
@@ -125,6 +125,39 @@
                 <span>🆔 ID Number</span>
                 <input v-model="form.id" placeholder="Enter ID number" required />
               </label>
+
+              <label>
+                <span>📅 Year</span>
+                <select v-model="form.year" required>
+                  <option disabled value="">Select Year</option>
+                  <option value="1st Year">1st Year</option>
+                  <option value="2nd Year">2nd Year</option>
+                  <option value="3rd Year">3rd Year</option>
+                  <option value="4th Year">4th Year</option>
+                </select>
+              </label>
+
+              <label>
+                <span>🏫 Department</span>
+                <select v-model="form.dept" @change="updateCourseOptions" required>
+                  <option disabled value="">Select Department</option>
+                  <option value="CEIT">CEIT</option>
+                  <option value="CTE">CTE</option>
+                  <option value="COT">COT</option>
+                  <option value="CAS">CAS</option>
+                </select>
+              </label>
+
+              <label>
+                <span>📚 Course</span>
+                <select v-model="form.course" required>
+                  <option disabled value="">Select Course</option>
+                  <option v-for="c in courseOptions" :key="c.value" :value="c.value">
+                    {{ c.label }}
+                  </option>
+                </select>
+              </label>
+
               <label>
                 <span>📅 Date</span>
                 <input v-model="form.date" type="date" required />
@@ -166,6 +199,45 @@ export default {
       currentItem: null,
       form: {},
       loading: false,
+      courseOptions: [],
+      DEPARTMENT_COURSES: {
+        CEIT: [
+          { label: 'Bachelor of Science in Electronics (BSECE)', value: 'BSECE' },
+          { label: 'Bachelor of Science in Electrical (BSEE)', value: 'BSEE' },
+          { label: 'Bachelor of Science in Computer (BSCoE)', value: 'BSCoE' },
+          { label: 'Bachelor of Science in Information Systems (BSIS)', value: 'BSIS' },
+          { label: 'Bachelor of Science in Information Technology (BSInfoTech)', value: 'BSInfoTech' },
+          { label: 'Bachelor of Science in Computer Science (BSCS)', value: 'BSCS' },
+        ],
+        CTE: [
+          { label: 'BSED - English', value: 'BSED-ENGLISH' },
+          { label: 'BSED - Filipino', value: 'BSED-FILIPINO' },
+          { label: 'BSED - Mathematics', value: 'BSED-MATH' },
+          { label: 'BSED - Sciences', value: 'BSED-SCIENCES' },
+          { label: 'BEED', value: 'BEED' },
+          { label: 'BPED', value: 'BPED' },
+          { label: 'BTVTED', value: 'BTVTED' },
+        ],
+        COT: [
+          { label: 'Bachelor in Electrical (BEET)', value: 'BEET' },
+          { label: 'Bachelor in Electronics (BEXET)', value: 'BEXET' },
+          { label: 'Bachelor in Mechanical (BMET)', value: 'BMET' },
+          { label: 'Mechanical Technology (BMET-MT)', value: 'BMET-MT' },
+          { label: 'Refrigeration & AC (BMET-RAC)', value: 'BMET-RAC' },
+          { label: 'Architectural Drafting (BSIT-ADT)', value: 'BSIT-ADT' },
+          { label: 'Automotive Technology (BSIT-AT)', value: 'BSIT-AT' },
+          { label: 'Electrical Technology (BSIT-ELT)', value: 'BSIT-ELT' },
+          { label: 'Electronics Technology (BSIT-ET)', value: 'BSIT-ET' },
+          { label: 'Mechanical Technology (BSIT-MT)', value: 'BSIT-MT' },
+          { label: 'Welding & Fabrication (BSIT-WAF)', value: 'BSIT-WAF' },
+          { label: 'Heating, Ventilation, AC & Refrigeration (BSIT-HVACR)', value: 'BSIT-HVACR' },
+        ],
+        CAS: [
+          { label: 'Bachelor of Science in Environmental Science (BSES)', value: 'BSES' },
+          { label: 'Bachelor of Science in Mathematics (BSMATH)', value: 'BSMATH' },
+          { label: 'Bachelor of Arts in English Language (BA-EL)', value: 'BA-EL' },
+        ],
+      }
     };
   },
   computed: {
@@ -184,15 +256,19 @@ export default {
   },
   mounted() {
     this.fetchItems();
-    this.fetchBorrowers(); // Fetch requests from backend
+    this.fetchBorrowers();
   },
   methods: {
+    updateCourseOptions() {
+      this.courseOptions = this.DEPARTMENT_COURSES[this.form.dept] || [];
+      this.form.course = "";
+    },
     async fetchItems() {
       this.loading = true;
       try {
         const res = await axios.get("/api/items");
         this.items = res.data;
-      } catch (e) {
+      } catch {
         alert("Failed to fetch items.");
       }
       this.loading = false;
@@ -201,7 +277,7 @@ export default {
       try {
         const res = await axios.get("/api/requests");
         this.borrowers = res.data;
-      } catch (e) {
+      } catch {
         alert("Failed to fetch requests.");
       }
     },
@@ -211,16 +287,20 @@ export default {
       this.showModal = true;
 
       if (type === "edit" && item) {
-        this.form = { ...item, image: null }; // image will be handled separately
+        this.form = { ...item, image: null };
       } else if (type === "request") {
         this.form = {
           name: "",
           id: "",
+          year: "",
+          dept: "",
+          course: "",
           date: "",
           timeIn: "",
           timeOut: "",
           item: item?.name || "",
         };
+        this.courseOptions = [];
       } else {
         this.form = { name: "", qty: "", image: null, description: "" };
       }
@@ -231,37 +311,33 @@ export default {
       this.currentItem = null;
     },
     async handleSubmit() {
-      if (this.modalType === "add") {
-        await this.addItem();
-      } else if (this.modalType === "edit") {
-        await this.editItem();
-      } else if (this.modalType === "request") {
+      if (this.modalType === "request") {
         try {
-          // Find the item by name to get its ID
           const item = this.items.find(i => i.name === this.form.item);
           if (!item) throw new Error("Item not found.");
 
           await axios.post("/api/requests", {
             name: this.form.name,
-            borrower_id: this.form.id, // <-- Make sure this is 'borrower_id'
+            borrower_id: this.form.id,
+            year: this.form.year,
+            department: this.form.dept,
+            course: this.form.course,
             date: this.form.date,
             time_in: this.form.timeIn,
             time_out: this.form.timeOut,
-            item_id: item.id, // <-- Send the item ID
+            item_id: item.id,
           });
           this.closeModal();
           alert("Request submitted!");
+          this.fetchBorrowers();
         } catch (e) {
-          // Show backend error message if available
-          if (e.response && e.response.data && e.response.data.message) {
-            alert("Failed to submit request: " + e.response.data.message);
-          } else if (e.response && e.response.data && e.response.data.errors) {
-            alert("Failed to submit request: " + JSON.stringify(e.response.data.errors));
-          } else {
-            alert("Failed to submit request.");
-          }
+          alert("Failed to submit request.");
           console.error(e);
         }
+      } else if (this.modalType === "add") {
+        await this.addItem();
+      } else if (this.modalType === "edit") {
+        await this.editItem();
       }
     },
     async addItem() {
@@ -279,14 +355,7 @@ export default {
         this.fetchItems();
         this.closeModal();
       } catch (e) {
-        // Show backend error message if available
-        if (e.response && e.response.data && e.response.data.message) {
-          alert("Failed to add item: " + e.response.data.message);
-        } else if (e.response && e.response.data && e.response.data.errors) {
-          alert("Failed to add item: " + JSON.stringify(e.response.data.errors));
-        } else {
-          alert("Failed to add item.");
-        }
+        alert("Failed to add item.");
         console.error(e);
       }
     },
@@ -304,7 +373,7 @@ export default {
         });
         this.fetchItems();
         this.closeModal();
-      } catch (e) {
+      } catch {
         alert("Failed to update item.");
       }
     },
@@ -312,7 +381,6 @@ export default {
       const file = event.target.files[0];
       if (file && file.type.startsWith("image/")) {
         this.form.image = file;
-        // For preview
         const reader = new FileReader();
         reader.onload = e => {
           this.form.imagePreview = e.target.result;
@@ -327,7 +395,7 @@ export default {
       try {
         await axios.delete(`/api/items/${id}`);
         this.fetchItems();
-      } catch (e) {
+      } catch {
         alert("Failed to delete item.");
       }
     },
@@ -338,7 +406,7 @@ export default {
       try {
         await axios.delete(`/api/requests/${borrower.id}`);
         this.fetchBorrowers();
-      } catch (e) {
+      } catch {
         alert("Failed to delete request.");
       }
     },
@@ -571,14 +639,17 @@ export default {
       justify-content: center;
     }
 
-    .modal-content {
-      background-color: white;
-      padding: 30px 24px 24px 24px;
-      border-radius: 14px;
-      width: 400px;
-      position: relative;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.18);
-    }
+   .modal-content {
+  background-color: white;
+  padding: 30px 24px 24px 24px;
+  border-radius: 14px;
+  width: 90%; /* more responsive on small screens */
+  max-width: 500px; /* limit width on big screens */
+  max-height: 90vh; /* prevent going off screen */
+  overflow-y: auto; /* scroll if content is taller */
+  position: relative;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+}
 
     .close {
       position: absolute;

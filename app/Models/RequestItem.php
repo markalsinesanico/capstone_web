@@ -11,11 +11,14 @@ class RequestItem extends Model
     protected $fillable = [
         'name',
         'borrower_id',
+        'year',
+        'department',
+        'course',
         'date',
         'time_in',
         'time_out',
         'item_id',
-        'status',
+        'status', // add this
     ];
 
     public function item()

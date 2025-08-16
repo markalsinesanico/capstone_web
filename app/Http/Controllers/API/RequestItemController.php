@@ -17,12 +17,15 @@ class RequestItemController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'borrower_id' => 'required|string|max:255',
-            'date' => 'required|date',
-            'time_in' => 'required',
-            'time_out' => 'required',
-            'item_id' => 'required|exists:items,id',
+        'name' => 'required|string|max:255',
+        'borrower_id' => 'required|string|max:255',
+        'year' => 'required|string|max:50',
+        'department' => 'required|string|max:50',
+        'course' => 'required|string|max:255',
+        'date' => 'required|date',
+        'time_in' => 'required',
+        'time_out' => 'required',
+        'item_id' => 'required|exists:items,id',
         ]);
 
         $requestItem = RequestItem::create($data);

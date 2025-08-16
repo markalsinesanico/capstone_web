@@ -2,7 +2,7 @@
   <div class="container">
     <aside class="sidebar">
       <nav class="menu">
-        <router-link to="/">DASHBOARD</router-link>
+        <router-link to="/dashboard">DASHBOARD</router-link>
         <router-link to="/borrowers">BORROWERS</router-link>
         <router-link to="/appointment">APPOINTMENT</router-link>
         <router-link to="/history">HISTORY</router-link>
@@ -141,6 +141,7 @@
 
 <script>
 import { QrcodeStream } from 'vue-qrcode-reader';
+import axios from "axios";
 export default {
   components: { QrcodeStream },
   data() {
@@ -150,14 +151,14 @@ export default {
       modalData: {
         name: '',
         idnum: '',
-        type: '', // new
+        type: '',
         year: '',
         dept: '',
         course: '',
-        date: '', // new
-        in: '',   // new
-        out: '',  // new
-        account: '' // new
+        date: '',
+        in: '',
+        out: '',
+        account: ''
       },
       availableItems: [],
       timeSlots: [
@@ -166,87 +167,10 @@ export default {
         "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM",
         "4:00 PM", "4:30 PM", "5:00 PM", "5:30 PM", "6:00 PM", "6:30 PM"
       ],
-     
-      events: [
-        {
-          name: 'Leo Santos',
-          idnum: '2023123002',
-          year: '2024–2025',
-          dept: 'CBA',
-          course: 'BSA',
-          startTime: '2025-08-17 07:00',
-          endTime: '2025-08-17 08:30',
-          item: 'Projector',
-          color: '#43a047' // green
-        },
-        {
-          name: 'Ana Cruz',
-          idnum: '2023123001',
-          year: '2024–2025',
-          dept: 'CEIT',
-          course: 'BSIT',
-          startTime: '2025-08-17 08:00',
-          endTime: '2025-08-17 09:30',
-          item: 'Speaker',
-          color: '#e53935' // red
-        },
-        // Additional random events
-        {
-          name: 'Carlos Reyes',
-          idnum: '2023123004',
-          year: '2024–2025',
-          dept: 'CAS',
-          course: 'BAEL',
-          startTime: '2025-08-17 07:00',
-          endTime: '2025-08-17 08:30',
-          item: 'Microphone',
-          color: '#1e88e5' // blue
-        },
-        {
-          name: 'Diana Lim',
-          idnum: '2023123005',
-          year: '2024–2025',
-          dept: 'COE',
-          course: 'BSEE',
-          startTime: '2025-08-17 09:00',
-          endTime: '2025-08-17 14:00',
-          item: 'Remote',
-          color: '#fbc02d' // yellow
-        },
-        {
-          name: 'Evan Yu',
-          idnum: '2023123006',
-          year: '2024–2025',
-          dept: 'CBA',
-          course: 'BSBA',
-          startTime: '2025-08-17 10:00',
-          endTime: '2025-08-17 15:00',
-          item: 'Projector',
-          color: '#8e24aa' // purple
-        },
-        {
-          name: 'Faye Gomez',
-          idnum: '2023123007',
-          year: '2024–2025',
-          dept: 'CEIT',
-          course: 'BSIT',
-          startTime: '2025-08-17 07:00',
-          endTime: '2025-08-17 08:30',
-          item: 'Speaker',
-          color: '#00acc1' // teal
-        },
-        {
-          name: 'George Tan',
-          idnum: '2023123008',
-          year: '2024–2025',
-          dept: 'CTE',
-          course: 'BSE',
-          startTime: '2025-08-17 12:00',
-          endTime: '2025-08-17 17:00',
-          item: 'Remote',
-          color: '#ff7043' // orange
-        }
-      ],
+      borrowers: [], // <-- keep this
+
+      events: [], // <-- REMOVE all hardcoded events, keep as empty array
+
       showQrModal: false,
       qrResult: '',
       userEmail: ''
@@ -254,11 +178,24 @@ export default {
   },
   computed: {
     processedEvents() {
+      // Combine hardcoded events and borrower events
+      const borrowerEvents = this.borrowers.map(b => ({
+        name: b.name,
+        idnum: b.borrower_id,
+        year: b.year,
+        dept: b.department,
+        course: b.course,
+        startTime: `${b.date} ${b.time_in}`,
+        endTime: `${b.date} ${b.time_out}`,
+        item: b.item?.name || 'N/A',
+        color: '#43a047' // or assign color based on item/department
+      }));
       // Only for the selected date
-      const eventsForDay = this.events.filter(e =>
+      const allEvents = [...this.events, ...borrowerEvents];
+      const eventsForDay = allEvents.filter(e =>
         e.startTime.startsWith(this.selectedDate)
       );
-      const eventsToShow = eventsForDay.length > 0 ? eventsForDay : this.events;
+      const eventsToShow = eventsForDay.length > 0 ? eventsForDay : allEvents;
 
       // Sort by start time
       const sorted = [...eventsToShow].sort((a, b) =>
@@ -359,7 +296,15 @@ export default {
       localStorage.removeItem('user');
       delete axios.defaults.headers.common['Authorization'];
       this.$router.push('/');
-    }
+    },
+    async fetchBorrowers() {
+      try {
+        const res = await axios.get("/api/requests");
+        this.borrowers = res.data;
+      } catch {
+        alert("Failed to fetch requests.");
+      }
+    },
   },
   mounted() {
     this.updateAvailableItems();
@@ -368,6 +313,7 @@ export default {
     if (user && user.email) {
       this.userEmail = user.email;
     }
+    this.fetchBorrowers(); // <-- add this
   }
 };
 </script>
