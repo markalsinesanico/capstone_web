@@ -52,9 +52,9 @@
         <div class="schedule">
           <div class="filter-search">
             <label for="sort">Sort By:</label>
-            <select id="sort">
-              <option>EQUIPMENT</option>
-              <option>ROOMS</option>
+            <select id="sort" v-model="sortBy">
+              <option value="EQUIPMENT">EQUIPMENT</option>
+              <option value="ROOMS">ROOMS</option>
             </select>
             <input type="text" placeholder="Search" />
           </div>
@@ -167,8 +167,9 @@ export default {
         "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM",
         "4:00 PM", "4:30 PM", "5:00 PM", "5:30 PM", "6:00 PM", "6:30 PM"
       ],
-      borrowers: [], // <-- keep this
-
+      borrowers: [],
+      roomRequests: [],
+      sortBy: 'EQUIPMENT',
       events: [], // <-- REMOVE all hardcoded events, keep as empty array
 
       showQrModal: false,
@@ -178,55 +179,61 @@ export default {
   },
   computed: {
     processedEvents() {
-      // Combine hardcoded events and borrower events
-      const borrowerEvents = this.borrowers.map(b => ({
-        name: b.name,
-        idnum: b.borrower_id,
-        year: b.year,
-        dept: b.department,
-        course: b.course,
-        startTime: `${b.date} ${b.time_in}`,
-        endTime: `${b.date} ${b.time_out}`,
-        item: b.item?.name || 'N/A',
-        color: '#43a047' // or assign color based on item/department
-      }));
+      let eventsToMap = [];
+      if (this.sortBy === 'ROOMS') {
+        // Map room requests to events
+        eventsToMap = this.roomRequests.map(r => ({
+          name: r.name,
+          idnum: r.borrower_id,
+          year: r.year,
+          dept: r.department,
+          course: r.course,
+          startTime: `${r.date} ${r.time_in}`,
+          endTime: `${r.date} ${r.time_out}`,
+          item: r.room?.name || 'Room',
+          color: '#007bff' // blue for rooms
+        }));
+      } else {
+        // Map equipment borrowers to events
+        eventsToMap = this.borrowers.map(b => ({
+          name: b.name,
+          idnum: b.borrower_id,
+          year: b.year,
+          dept: b.department,
+          course: b.course,
+          startTime: `${b.date} ${b.time_in}`,
+          endTime: `${b.date} ${b.time_out}`,
+          item: b.item?.name || 'N/A',
+          color: '#43a047' // green for equipment
+        }));
+      }
+
       // Only for the selected date
-      const allEvents = [...this.events, ...borrowerEvents];
-      const eventsForDay = allEvents.filter(e =>
+      const eventsForDay = eventsToMap.filter(e =>
         e.startTime.startsWith(this.selectedDate)
       );
-      const eventsToShow = eventsForDay.length > 0 ? eventsForDay : allEvents;
-
-      // Sort by start time
-      const sorted = [...eventsToShow].sort((a, b) =>
+      const sorted = [...eventsForDay].sort((a, b) =>
         a.startTime.localeCompare(b.startTime)
       );
 
       // Assign columns based on overlap
       const columns = [];
       const result = [];
-
       sorted.forEach(event => {
         const rowStart = this.getRowIndex(event.startTime.split(' ')[1]);
         const rowEnd = this.getRowIndex(event.endTime.split(' ')[1]);
-        const rowSpan = rowEnd - rowStart + 1; // <-- add +1 here!
-
-        // Find the first available column
-        let col = 2; // gridColumn starts at 2
+        const rowSpan = rowEnd - rowStart + 1;
+        let col = 2;
         while (
           columns[col] &&
           columns[col].some(
-            e =>
-              // overlap if start < e.end && end > e.start
-              rowStart < e.end && rowEnd > e.start
+            e => rowStart < e.end && rowEnd > e.start
           )
         ) {
           col++;
         }
-        // Register this event in the column
         if (!columns[col]) columns[col] = [];
         columns[col].push({ start: rowStart, end: rowEnd });
-
         result.push({
           ...event,
           rowStart: rowStart,
@@ -234,7 +241,6 @@ export default {
           col
         });
       });
-
       return result;
     }
   },
@@ -305,6 +311,25 @@ export default {
         alert("Failed to fetch requests.");
       }
     },
+    async fetchRoomRequests() {
+      try {
+        const res = await axios.get("/api/room-requests");
+        this.roomRequests = res.data;
+      } catch {
+        alert("Failed to fetch room requests.");
+      }
+    },
+    updateSchedule() {
+      // Logic to update the schedule based on sortBy selection
+      // This could involve fetching data again or sorting the existing data
+      if (this.sortBy === 'EQUIPMENT') {
+        // Sort by equipment name
+        this.borrowers.sort((a, b) => a.item.name.localeCompare(b.item.name));
+      } else {
+        // Sort by room (assuming room is part of the borrower data)
+        this.borrowers.sort((a, b) => a.room.localeCompare(b.room));
+      }
+    }
   },
   mounted() {
     this.updateAvailableItems();
@@ -313,7 +338,8 @@ export default {
     if (user && user.email) {
       this.userEmail = user.email;
     }
-    this.fetchBorrowers(); // <-- add this
+    this.fetchBorrowers();
+    this.fetchRoomRequests();
   }
 };
 </script>
