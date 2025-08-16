@@ -21,7 +21,10 @@
             <p>APPOINT & BORROW</p>
           </div>
         </div>
-        <div class="user">M {{ userEmail }}</div>
+        <div class="user">
+          M {{ userEmail }}
+          <button @click="logout" class="logout-btn">Logout</button>
+        </div>
       </header>
 
       <!-- Item Section -->
@@ -257,6 +260,12 @@ export default {
   mounted() {
     this.fetchItems();
     this.fetchBorrowers();
+
+    // Get user email from localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (user && user.email) {
+      this.userEmail = user.email;
+    }
   },
   methods: {
     updateCourseOptions() {
@@ -315,6 +324,18 @@ export default {
         try {
           const item = this.items.find(i => i.name === this.form.item);
           if (!item) throw new Error("Item not found.");
+
+          // Check slot availability
+          const available = this.isSlotAvailable(
+            item.name,
+            this.form.date,
+            this.form.timeIn,
+            this.form.timeOut
+          );
+          if (!available) {
+            alert("This item is no longer available for the selected time slot.");
+            return;
+          }
 
           await axios.post("/api/requests", {
             name: this.form.name,
@@ -412,6 +433,34 @@ export default {
     },
     getImageUrl(item) {
       return item.image_url || "/img/no-image.png";
+    },
+    isSlotAvailable(itemName, date, timeIn, timeOut) {
+      // Find the item to get its quantity
+      const item = this.items.find(i => i.name === itemName);
+      if (!item) return false;
+
+      // Count overlapping requests for this item and time slot
+      const overlapping = this.borrowers.filter(b =>
+        b.item?.name === itemName &&
+        b.date === date &&
+        (
+          // Check if requested time overlaps with existing request
+          (timeIn < b.time_out && timeOut > b.time_in)
+        )
+      ).length;
+
+      return overlapping < item.qty;
+    },
+    async logout() {
+      try {
+        await axios.post('/api/logout');
+      } catch (e) {
+        // ignore errors
+      }
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      delete axios.defaults.headers.common['Authorization'];
+      this.$router.push('/');
     },
   },
 };
@@ -729,5 +778,20 @@ export default {
 }
 .submit-btn:hover {
   background-color: #00632e;
+}
+
+.logout-btn {
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s;
+  font-size: 12px;
+}
+.logout-btn:hover {
+  background: #c0392b;
 }
 </style>

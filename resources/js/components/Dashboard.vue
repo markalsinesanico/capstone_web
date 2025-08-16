@@ -36,13 +36,13 @@
           <input type="date" v-model="selectedDate" @change="updateAvailableItems" />
           <h4 style="margin-top: 10px;">Available Items</h4>
           <div id="availableItemsList">
-            <div v-if="availableItems.length === 0"><p>No items available for this date.</p></div>
+            <div v-if="availableList.length === 0"><p>No items available for this date.</p></div>
             <div
-              v-for="(item, index) in availableItems"
+              v-for="(item, index) in availableList"
               :key="index"
               class="item-card"
             >
-              <img :src="item.image" :alt="item.name" />
+              <img v-if="sortBy === 'EQUIPMENT'" :src="item.image" :alt="item.name" />
               <h4>{{ item.name }}</h4>
               <p>Available Slots: {{ item.slots }}</p>
             </div>
@@ -169,6 +169,8 @@ export default {
       ],
       borrowers: [],
       roomRequests: [],
+      rooms: [],
+      items: [],
       sortBy: 'EQUIPMENT',
       events: [], // <-- REMOVE all hardcoded events, keep as empty array
 
@@ -242,7 +244,57 @@ export default {
         });
       });
       return result;
-    }
+    },
+    availableList() {
+      if (this.sortBy === 'ROOMS') {
+        return this.rooms.map(room => ({
+          name: room.name,
+          slots: room.quantity,
+          image: '/img/room.png'
+        }));
+      } else {
+        return this.items.map(item => ({
+          name: item.name,
+          slots: item.qty,
+          image: item.image_url || '/img/no-image.png'
+        }));
+      }
+    },
+    itemSlotAvailability() {
+      // Only for EQUIPMENT
+      if (this.sortBy !== 'EQUIPMENT') return [];
+
+      // Build a table: [{ name, slots: [slot1, slot2, ...] }]
+      return this.items.map(item => {
+        // For each time slot, count overlapping requests
+        const slots = this.timeSlots.map((slot, idx) => {
+          // Build time string for this slot
+          const [hour, min, ampm] = slot.match(/(\d+):(\d+) (\w+)/).slice(1);
+          let slotHour = parseInt(hour, 10);
+          if (ampm === 'PM' && slotHour !== 12) slotHour += 12;
+          if (ampm === 'AM' && slotHour === 12) slotHour = 0;
+          const slotTime = `${slotHour.toString().padStart(2, '0')}:${min}`;
+
+          // Find requests for this item, this date, overlapping this slot
+          const overlapping = this.borrowers.filter(b =>
+            b.item?.name === item.name &&
+            b.date === this.selectedDate &&
+            slotTime >= b.time_in &&
+            slotTime < b.time_out
+          ).length;
+
+          // If all slots are taken, mark as 'Full'
+          if (overlapping >= item.qty) return 'Full';
+          // Otherwise, show available slots
+          return item.qty - overlapping;
+        });
+        return {
+          name: item.name,
+          slots,
+          image: item.image_url || '/img/no-image.png'
+        };
+      });
+    },
   },
   methods: {
     getRowIndex(time) {
@@ -319,6 +371,22 @@ export default {
         alert("Failed to fetch room requests.");
       }
     },
+    async fetchRooms() {
+      try {
+        const res = await axios.get("/api/rooms");
+        this.rooms = res.data;
+      } catch {
+        alert("Failed to fetch rooms.");
+      }
+    },
+    async fetchItems() {
+      try {
+        const res = await axios.get("/api/items");
+        this.items = res.data;
+      } catch {
+        alert("Failed to fetch items.");
+      }
+    },
     updateSchedule() {
       // Logic to update the schedule based on sortBy selection
       // This could involve fetching data again or sorting the existing data
@@ -340,6 +408,8 @@ export default {
     }
     this.fetchBorrowers();
     this.fetchRoomRequests();
+    this.fetchRooms();
+    this.fetchItems();
   }
 };
 </script>

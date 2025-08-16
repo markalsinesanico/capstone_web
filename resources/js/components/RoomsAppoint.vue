@@ -15,13 +15,16 @@
       <!-- Topbar -->
       <header class="topbar">
         <div class="logo">
-          <img src="img/logo.png" alt="Logo" />
+          <img src="/img/logo.png" alt="Logo" />
           <div class="logo-text">
             <h2>SMART LINK</h2>
             <p>APPOINT & BORROW</p>
           </div>
         </div>
-        <div class="user">M msanico@ssct...</div>
+        <div class="user">
+          M {{ userEmail }}
+          <button @click="logout" class="logout-btn">Logout</button>
+        </div>
       </header>
 
       <!-- Rooms Section -->
@@ -160,7 +163,13 @@
 
             <label>
               <span>📆 Date</span>
-              <input v-model="requestForm.date" type="date" required />
+              <input
+                v-model="requestForm.date"
+                type="date"
+                required
+                @input="onDateInput"
+                style="background-color: white !important; color: #333 !important;"
+              />
             </label>
             <label>
               <span>⏰ Time In</span>
@@ -188,7 +197,6 @@
 
 <script>
 import axios from "axios";
-
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000",
 });
@@ -197,6 +205,7 @@ export default {
   name: "RoomsDashboard",
   data() {
     return {
+      userEmail: "msanico@ssct.edu.ph",
       rooms: [],
       roomRequests: [],
       search: "",
@@ -282,6 +291,16 @@ export default {
     onDeptChange() {
       this.courseOptions = this.DEPARTMENT_COURSES[this.requestForm.department] || [];
       this.requestForm.course = "";
+    },
+    onDateInput(e) {
+      const val = e.target.value;
+      if (!val) return;
+      const day = new Date(val).getDay();
+      // 0 = Sunday, 6 = Saturday
+      if (day !== 0 && day !== 6) {
+        alert("Only Saturdays and Sundays are allowed for room requests.");
+        this.requestForm.date = "";
+      }
     },
 
     // --- rooms ---
@@ -386,7 +405,25 @@ export default {
         console.error(err);
       }
     },
+    async logout() {
+      try {
+        await axios.post('/api/logout');
+      } catch (e) {
+        // ignore errors
+      }
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      delete axios.defaults.headers.common['Authorization'];
+      this.$router.push('/');
+    },
   },
+  mounted() {
+    // Get user email from localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (user && user.email) {
+      this.userEmail = user.email;
+    }
+  }
 };
 </script>
 
@@ -444,4 +481,26 @@ table th, table td { padding: 10px; border-bottom: 1px solid #ddd; text-align: c
 .modal-grid { display: grid; grid-template-columns: 1fr; gap: 12px 16px; }
 .modal-grid .full { grid-column: 1 / -1; }
 @media (min-width: 640px) { .modal-grid { grid-template-columns: 1fr 1fr; } }
+
+input[type="date"]:focus, input[type="date"]:active, input[type="date"] {
+  background-color: white !important;
+  color: #333 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.logout-btn {
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s;
+  font-size: 12px;
+}
+.logout-btn:hover {
+  background: #c0392b;
+}
 </style>
