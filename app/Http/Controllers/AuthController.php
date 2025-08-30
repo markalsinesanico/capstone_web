@@ -23,13 +23,6 @@ class AuthController extends Controller
         $user = Auth::user();
         Log::info('User authenticated', ['user_id' => $user->id, 'role' => $user->role]);
 
-        // Check if user is admin
-        if ($user->role !== 'admin') {
-            Auth::logout();
-            Log::warning('Login failed - not admin', ['user_id' => $user->id, 'role' => $user->role]);
-            return response()->json(['message' => 'Only admin can log in'], 403);
-        }
-
         // Generate token using Sanctum
         $token = $user->createToken('auth_token')->plainTextToken;
         
@@ -38,7 +31,8 @@ class AuthController extends Controller
         return response()->json([
             'token' => $token,
             'user' => $user,
-            'message' => 'Login successful'
+            'message' => 'Login successful',
+            'role' => $user->role // Adding role to response
         ]);
     }
 
@@ -53,4 +47,4 @@ class AuthController extends Controller
     {
         return response()->json($request->user());
     }
-} 
+}
