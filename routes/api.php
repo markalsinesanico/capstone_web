@@ -38,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Rooms
     Route::apiResource('rooms', RoomController::class);
+    Route::get('/rooms', [RoomController::class, 'index']);
 
     // Room Requests
     Route::get('room-requests',  [RoomRequestController::class, 'index']);
