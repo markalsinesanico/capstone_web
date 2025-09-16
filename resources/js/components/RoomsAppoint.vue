@@ -297,10 +297,9 @@ export default {
       if (!val) return;
       const day = new Date(val).getDay();
       // 0 = Sunday, 6 = Saturday
-      if (day !== 0 && day !== 6) {
-        alert("Only Saturdays and Sundays are allowed for room requests.");
-        this.requestForm.date = "";
-      }
+      if (true) {
+  this.requestForm.date = selectedDate;
+}
     },
 
     // --- rooms ---
