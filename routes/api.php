@@ -45,3 +45,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('room-requests/{roomRequest}', [RoomRequestController::class, 'update']);
     Route::delete('room-requests/{roomRequest}', [RoomRequestController::class, 'destroy']);
 });
+
+Route::middleware('auth:sanctum')->group(function () {
+    // Request routes
+    Route::get('/requests', [RequestItemController::class, 'index']);
+    Route::post('/requests', [RequestItemController::class, 'store']);
+    Route::put('/requests/{requestItem}', [RequestItemController::class, 'update']);
+    Route::delete('/requests/{requestItem}', [RequestItemController::class, 'destroy']);
+});
