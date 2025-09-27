@@ -81,9 +81,9 @@
               <td>{{ r.department }}</td>
               <td>{{ r.course }}</td>
               <td>{{ r.room?.name || '—' }}</td>
-              <td>{{ r.date }}</td>
-              <td>{{ r.time_in }}</td>
-              <td>{{ r.time_out }}</td>
+              <td>{{ formatDate(r.date) }}</td>
+              <td>{{ formatTime(r.time_in) }}</td>
+              <td>{{ formatTime(r.time_out) }}</td>
             </tr>
           </tbody>
         </table>
@@ -295,11 +295,8 @@ export default {
     onDateInput(e) {
       const val = e.target.value;
       if (!val) return;
-      const day = new Date(val).getDay();
-      // 0 = Sunday, 6 = Saturday
-      if (true) {
-  this.requestForm.date = selectedDate;
-}
+      // set the ISO date (YYYY-MM-DD) directly to the form
+      this.requestForm.date = val;
     },
 
     // --- rooms ---
@@ -388,6 +385,27 @@ export default {
       } catch (err) {
         console.error("Failed to fetch requests:", err);
       }
+    },
+    // helper moved into methods so template can access it
+    formatTime(time) {
+      if (!time) return '';
+      // time expected as 'HH:mm' or 'HH:mm:ss'
+      const parts = String(time).split(':');
+      let hour = parseInt(parts[0], 10);
+      const minute = (parts[1] || '00').padStart(2, '0');
+      const suffix = hour >= 12 ? 'PM' : 'AM';
+      hour = hour % 12 || 12;
+      return `${hour}:${minute} ${suffix}`;
+    },
+    // format ISO datetime strings by stripping the time component
+    formatDate(d) {
+      if (!d) return '';
+      let s = String(d).trim();
+      // if it's an ISO datetime like 2025-09-27T00:00:00.000000Z, take the date part
+      if (s.includes('T')) return s.split('T')[0];
+      // if it's a full ISO with space, try splitting by space
+      if (s.includes(' ')) return s.split(' ')[0];
+      return s;
     },
     async submitRoomRequest() {
       this.submitting = true;

@@ -24,6 +24,7 @@ class RoomRequestController extends Controller
             'department'  => ['required','string', Rule::in(['CEIT','COT','CTE','CAS'])],
             'course'      => 'required|string|max:100',
             'date'        => 'required|date',
+            'email'       => 'nullable|email|max:255',
             'time_in'     => 'required|date_format:H:i',
             'time_out'    => 'required|date_format:H:i|after:time_in',
             'room_id'     => 'required|exists:rooms,id',
@@ -49,6 +50,10 @@ class RoomRequestController extends Controller
                 'message' => 'Room is fully booked for the selected time range.'
             ], 422);
         }
+        // Prefer authenticated user's email if available
+        if (auth()->check() && auth()->user()->email) {
+            $data['email'] = auth()->user()->email;
+        }
 
         $req = RoomRequest::create($data);
         return $req->load('room');
@@ -65,7 +70,7 @@ class RoomRequestController extends Controller
 
     public function destroy(RoomRequest $roomRequest)
     {
-        $roomRequest->delete();
-        return response()->json(['message' => 'Request deleted']);
-    }
+   $roomRequest->delete();
+    return response()->json(['message' => 'Room request deleted successfully']);
+}
 }

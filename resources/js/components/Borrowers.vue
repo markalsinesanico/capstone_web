@@ -81,8 +81,8 @@
               <td>{{ borrower.department }}</td>
               <td>{{ borrower.course }}</td>
               <td>{{ borrower.date }}</td>
-              <td>{{ borrower.time_in }}</td>
-              <td>{{ borrower.time_out }}</td>
+             <td>{{ formatTime(borrower.time_in) }}</td>
+            <td>{{ formatTime(borrower.time_out) }}</td>
               <td>{{ borrower.item?.name || 'N/A' }}</td>
             </tr>
           </tbody>
@@ -282,6 +282,15 @@ export default {
       }
       this.loading = false;
     },
+     formatTime(time) {
+    if (!time) return "";
+    const [hours, minutes] = time.split(":");
+    const h = parseInt(hours, 10);
+    const suffix = h >= 12 ? "PM" : "AM";
+    const formattedHour = ((h + 11) % 12 + 1); // convert to 12-hour format
+    return `${formattedHour}:${minutes} ${suffix}`;
+  },
+  
     async fetchBorrowers() {
       try {
         const res = await axios.get("/api/requests");
@@ -370,9 +379,7 @@ export default {
         if (this.form.image instanceof File) {
           formData.append("image", this.form.image);
         }
-        await axios.post("/api/items", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        await axios.post("/api/items", formData);
         this.fetchItems();
         this.closeModal();
       } catch (e) {
@@ -389,9 +396,7 @@ export default {
         if (this.form.image instanceof File) {
           formData.append("image", this.form.image);
         }
-        await axios.post(`/api/items/${this.currentItem.id}?_method=PUT`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        await axios.post(`/api/items/${this.currentItem.id}?_method=PUT`, formData);
         this.fetchItems();
         this.closeModal();
       } catch {

@@ -15,4 +15,8 @@ class Item extends Model
     {
         return $this->image ? asset('storage/' . $this->image) : null;
     }
+    public function units()
+{
+    return $this->hasMany(ItemUnit::class);
+}
 }

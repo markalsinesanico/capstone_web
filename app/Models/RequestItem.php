@@ -19,6 +19,7 @@ class RequestItem extends Model
         'time_out',
         'item_id',
         'status', // add this
+        'email',
     ];
 
     public function item()
